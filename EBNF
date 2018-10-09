@@ -1,0 +1,39 @@
+Goals:
+ - Static type checking
+
+Example code:
+fn inc(n: i32)
+   return n + 1
+end
+fn main
+   let x : i32 = 15
+   if x > 10
+   	  x = inc(x)
+   end
+   print x
+end
+
+Example of right now:
+
+5 * (1 + 3)
+$ 20
+
+EBNF:
+
+atom    = INT
+	    | '(' expression ')'
+prefix  = ['-'] prefix | atom
+mul_ops = prefix {('*'|'/') prefix}
+add_ops = mul_ops {('+'|'-') mul_ops}
+expression = add_ops
+
+atom = INT
+	 | '(' expression ')'
+prefix = '-' prefix
+	   | prefix
+mul_ops = prefix '*' prefix
+		| prefix '/' prefix
+		| prefix
+
+The lexer should tokenize:
+'(', ')', '+', '-', '*', '/', "[0-9]+"
