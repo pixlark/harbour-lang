@@ -12,9 +12,8 @@
 	return *yytext;
 }
 
-"let" {
-	return LET_KW;
-}
+"print" { return PRINT_KW; }
+"let" { return LET_KW; }
 
 "i32" {
 	yylval.type = TYPE_I32;

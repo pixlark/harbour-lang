@@ -35,7 +35,6 @@
 		EXPR_UNARY,
 		EXPR_BINARY,
 		EXPR_FUNCALL,
-		EXPR_COMMA,
 	} Expr_Type;
 	char * expr_str[];
 	typedef struct Expr {
@@ -65,6 +64,7 @@
 	typedef enum {
 		STMT_EXPR,
 		STMT_LET,
+		STMT_PRINT,
 	} Stmt_Type;
 	typedef struct Stmt {
 		Stmt_Type type;
@@ -77,6 +77,9 @@
 				Type type;
 				Expr * expr;
 			} let;
+			struct {
+				Expr * expr;
+			} print;
 		};
 	} Stmt;
 	void print_expr(Expr * expr);
@@ -101,6 +104,7 @@
 };
 
 %token         LET_KW
+%token         PRINT_KW
 %token <val>   INT_LIT
 %token <ident> IDENT
 %token <type>  TYPE
@@ -109,6 +113,7 @@
 %type <exprlist> comma_expression
 %type <stmt>     statement
 %type <stmt>     let_stmt
+%type <stmt>     print_stmt
 
 %left '+' '-'
 %left '*' '/'
@@ -208,6 +213,15 @@ LET_KW IDENT ':' TYPE {
 	stmt->let.expr = $6;
 	$$ = stmt;
 }
+;
+
+print_stmt:
+PRINT_KW expression {
+	STMT(STMT_PRINT);
+	stmt->print.expr = $2;
+	$$ = stmt;
+}
+;
 
 statement:
 expression ';' {
@@ -217,6 +231,9 @@ expression ';' {
 }
 | let_stmt ';' {
 	$$ = $1;
+}
+| print_stmt ';' {
+
 }
 ;
 
@@ -318,8 +335,14 @@ char * str_stmt(Stmt * stmt)
 			char * expr = str_expr(stmt->let.expr);
 			strcat(buffer, " = ");
 			strcat(buffer, expr);
+			free(expr);
 		}
 		strcat(buffer, ";");
+	} break;
+	case STMT_PRINT: {
+		char * expr = str_expr(stmt->print.expr);
+		sprintf(buffer, "print %s;", expr);
+		free(expr);
 	} break;
 	}
 	char * str = malloc(strlen(buffer + 1));

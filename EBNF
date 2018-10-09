@@ -26,6 +26,14 @@ EBNF:
       |
       'let' IDENT ':' TYPE '=' expression
 
+print statement:
+   Prints an expressions
+ex:
+   `print 15;`
+   $ 15
+   `print f(x);`
+   $ 33
+
 program:
    statement
    |
