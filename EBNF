@@ -13,6 +13,24 @@ fn main
    print x
 end
 
+Statements:
+
+let statement:
+   Creates a new variable with an explicit type, and optionally binds a value to it.
+ex:
+   `let x: i32 = 15`
+   `let x: i32;`
+EBNF:
+   let_stmt:
+      'let' IDENT ':' TYPE
+      |
+      'let' IDENT ':' TYPE '=' expression
+
+program:
+   statement
+   |
+   program statement
+
 Example of right now:
 
 5 * (1 + 3)

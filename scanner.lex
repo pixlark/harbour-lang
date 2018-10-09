@@ -6,6 +6,21 @@
 
 %%
 
+" "|"\t"|"\r"|"\n" {}
+
+"("|")"|"*"|"/"|"+"|"-"|","|";"|":"|"=" {
+	return *yytext;
+}
+
+"let" {
+	return LET_KW;
+}
+
+"i32" {
+	yylval.type = TYPE_I32;
+	return TYPE;
+}
+
 [_A-Za-z][_A-Za-z0-9]* {
 	yylval.ident = str_intern(yytext);
 	return IDENT;
@@ -13,14 +28,8 @@
 
 [0-9]+ {
 	yylval.val = atoi(yytext);
-	return INT;
+	return INT_LIT;
 }
-
-"("|")"|"*"|"/"|"+"|"-"|"," {
-	return *yytext;
-}
-
-" "|"\t"|"\r"|"\n" {}
 
 . {
 	fprintf(stderr, "Unrecognized character '%c'\n", *yytext);

@@ -18,12 +18,17 @@
 	const char * str_intern(const char * str);
 
 	typedef enum {
+		TYPE_I32,
+	} Type;
+	char * type_str[];
+	typedef enum {
 		OP_NEG,
 		OP_ADD,
 		OP_SUB,
 		OP_MUL,
 		OP_DIV,
 	} Operator;
+	char * operator_str[];
 	typedef enum {
 		EXPR_ATOM,
 		EXPR_VAR,
@@ -31,7 +36,8 @@
 		EXPR_BINARY,
 		EXPR_FUNCALL,
 		EXPR_COMMA,
-	} Expr_Type ;
+	} Expr_Type;
+	char * expr_str[];
 	typedef struct Expr {
 		Expr_Type type;
 		union {
@@ -56,10 +62,31 @@
 			} funcall;
 		};
 	} Expr;
+	typedef enum {
+		STMT_EXPR,
+		STMT_LET,
+	} Stmt_Type;
+	typedef struct Stmt {
+		Stmt_Type type;
+		union {
+			struct {
+				Expr * expr;
+			} expr;
+			struct {
+				const char * name;
+				Type type;
+				Expr * expr;
+			} let;
+		};
+	} Stmt;
 	void print_expr(Expr * expr);
+	void print_stmt(Stmt * stmt);
 	#define EXPR(t) \
 		Expr * expr = malloc(sizeof(Expr)); \
 		expr->type = t;
+	#define STMT(t) \
+		Stmt * stmt = malloc(sizeof(Stmt)); \
+		stmt->type = t;
  }
 
 %define parse.error verbose
@@ -69,38 +96,35 @@
 	const char * ident;
 	Expr * expr;
 	Expr ** exprlist;
+	Stmt * stmt;
+	Type type;
 };
-%token <val> INT
+
+%token         LET_KW
+%token <val>   INT_LIT
 %token <ident> IDENT
-%type <expr> expression
+%token <type>  TYPE
+
+%type <expr>     expression
 %type <exprlist> comma_expression
+%type <stmt>     statement
+%type <stmt>     let_stmt
 
 %left '+' '-'
 %left '*' '/'
 %left UMINUS
 
-%start outer
+%start program
 
 %%
 
 comma_expression:
 expression {
-	/*
-	EXPR(EXPR_COMMA);
-	expr->comma.self = $1;
-	expr->comma.next = NULL;
-	$$ = expr;*/
 	Expr ** list = NULL;
 	sb_push(list, $1);
 	$$ = list;
 }
 | comma_expression ',' expression {
-	/*
-	EXPR(EXPR_COMMA);
-	expr->comma.self = $3;
-	expr->comma.next = NULL;
-	$1->comma.next = expr;
-	$$ = $1;*/
 	Expr ** list = $1;
 	sb_push(list, $3);
 	$$ = list;
@@ -108,7 +132,7 @@ expression {
 ;
 
 expression:
-INT {
+INT_LIT {
 	EXPR(EXPR_ATOM);
 	expr->atom.val = $1;
 	$$ = expr;
@@ -169,9 +193,39 @@ INT {
 }
 ;
 
-outer:
-expression {
-	print_expr($1); 
+let_stmt:
+LET_KW IDENT ':' TYPE {
+	STMT(STMT_LET);
+	stmt->let.name = $2;
+	stmt->let.type = $4;
+	stmt->let.expr = NULL;
+	$$ = stmt;
+}
+| LET_KW IDENT ':' TYPE '=' expression {
+	STMT(STMT_LET);
+	stmt->let.name = $2;
+	stmt->let.type = $4;
+	stmt->let.expr = $6;
+	$$ = stmt;
+}
+
+statement:
+expression ';' {
+	STMT(STMT_EXPR);
+	stmt->expr.expr = $1;
+	$$ = stmt;
+}
+| let_stmt ';' {
+	$$ = $1;
+}
+;
+
+program:
+statement {
+	print_stmt($1);
+}
+| program statement {
+	print_stmt($2);
 }
 ;
 
@@ -211,20 +265,19 @@ char * str_expr(Expr * expr)
 	} break;
 	case EXPR_UNARY: {
 		char * operand = str_expr(expr->unary.operand);
-		sprintf(buffer, "Unary %d on [%s]", expr->unary.operator, operand);
+		sprintf(buffer, "Unary %s on [%s]", operator_str[expr->unary.operator], operand);
 		free(operand);
 	} break;
 	case EXPR_BINARY: {
 		char * left = str_expr(expr->binary.left);
 		char * right = str_expr(expr->binary.right);
-		sprintf(buffer, "Binary %d on [%s], [%s]",
-			expr->binary.operator,
+		sprintf(buffer, "Binary %s on [%s], [%s]",
+			operator_str[expr->binary.operator],
 			left, right);
 		free(right);
 		free(left);
 	} break;
  	case EXPR_FUNCALL: {
-		//char * args = str_expr(expr->funcall.args);
 		sprintf(buffer, "Funcall %s on [",
 			expr->funcall.name);
 		for (int i = 0; i < sb_count(expr->funcall.args); i++) {
@@ -236,25 +289,7 @@ char * str_expr(Expr * expr)
 			free(arg);
 		}
 		strcat(buffer, "]");
-		//free(args);
 	} break;
-	/*
-	case EXPR_COMMA: {
-		strcpy(buffer, "Comma: ");
-		Expr * iter = expr;
-		while (iter != NULL) {
-			char * str = str_expr(iter->comma.self);
-			strcat(buffer, "[");
-			strcat(buffer, str);
-			free(str);
-			if (iter->comma.next != NULL) {
-				strcat(buffer, "], ");
-			} else {
-				strcat(buffer, "]");
-			}
-			iter = iter->comma.next;
-		}
-	} break;*/
 	}
 	char * str = malloc(strlen(buffer) + 1);
 	strcpy(str, buffer);
@@ -268,9 +303,58 @@ void print_expr(Expr * expr)
 	free(str);
 }
 
+char * str_stmt(Stmt * stmt)
+{
+	char buffer[512];
+	switch (stmt->type) {
+	case STMT_EXPR: {
+		char * expr = str_expr(stmt->expr.expr);
+		strcpy(buffer, expr);
+		free(expr);
+	} break;
+	case STMT_LET: {
+		sprintf(buffer, "let %s : %s", stmt->let.name, type_str[stmt->let.type]);
+		if (stmt->let.expr) {
+			char * expr = str_expr(stmt->let.expr);
+			strcat(buffer, " = ");
+			strcat(buffer, expr);
+		}
+		strcat(buffer, ";");
+	} break;
+	}
+	char * str = malloc(strlen(buffer + 1));
+	strcpy(str, buffer);
+	return str;
+}
+
+void print_stmt(Stmt * stmt)
+{
+	char * str = str_stmt(stmt);
+	printf("%s\n", str);
+	free(str);
+}
+
 int main(int argc, char ** argv)
 {
 	yydebug = 0;
 	init();
 	yyparse();
 }
+
+char * type_str[] = {
+	"i32"
+};
+char * operator_str[] = {
+	"NEG",
+	"ADD",
+	"SUB",
+	"MUL",
+	"DIV",
+};
+char * expr_str[] = {
+	"ATOM",
+	"VAR",
+	"UNARY",
+	"BINARY",
+	"FUNCALL",
+};
