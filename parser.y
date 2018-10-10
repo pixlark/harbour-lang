@@ -4,7 +4,7 @@
 	#include <string.h>
 	#include "stretchy_buffer.h"
 	int yylex();
-	void yyerror(char const *);
+	//void yyerror(char const *);
 	void init();
 %}
 
@@ -20,7 +20,7 @@
 	typedef enum {
 		TYPE_I32,
 	} Type;
-	char * type_str[];
+	const char * type_str[];
 	typedef enum {
 		OP_NEG,
 		OP_ADD,
@@ -28,7 +28,7 @@
 		OP_MUL,
 		OP_DIV,
 	} Operator;
-	char * operator_str[];
+	const char * operator_str[];
 	typedef enum {
 		EXPR_ATOM,
 		EXPR_VAR,
@@ -36,7 +36,7 @@
 		EXPR_BINARY,
 		EXPR_FUNCALL,
 	} Expr_Type;
-	char * expr_str[];
+	const char * expr_str[];
 	typedef struct Expr {
 		Expr_Type type;
 		union {
@@ -90,10 +90,13 @@
 	#define STMT(t) \
 		Stmt * stmt = malloc(sizeof(Stmt)); \
 		stmt->type = t;
+	Stmt ** parse();
+	void yyerror(Stmt *** program_stmts, char const * s);
  }
 
 %define parse.error verbose
-
+%parse-param {Stmt *** program_stmts}
+						
 %union {
 	int val;
 	const char * ident;
@@ -239,10 +242,12 @@ expression ';' {
 
 program:
 statement {
-	print_stmt($1);
+	//print_stmt($1);
+	sb_push(*program_stmts, $1);
 }
 | program statement {
-	print_stmt($2);
+	//print_stmt($2);
+	sb_push(*program_stmts, $2);
 }
 ;
 
@@ -357,27 +362,37 @@ void print_stmt(Stmt * stmt)
 	free(str);
 }
 
-int main(int argc, char ** argv)
+Stmt ** parse()
 {
 	yydebug = 0;
 	init();
-	yyparse();
+	Stmt ** program_stmts = NULL;
+	if (yyparse(&program_stmts)) {
+		fprintf(stderr, "Encountered error while parsing. Exiting.\n");
+		exit(1);
+	}
+	return program_stmts;
 }
 
-char * type_str[] = {
+const char * type_str[] = {
 	"i32"
 };
-char * operator_str[] = {
+const char * operator_str[] = {
 	"NEG",
 	"ADD",
 	"SUB",
 	"MUL",
 	"DIV",
 };
-char * expr_str[] = {
+const char * expr_str[] = {
 	"ATOM",
 	"VAR",
 	"UNARY",
 	"BINARY",
 	"FUNCALL",
 };
+
+void yyerror(Stmt *** program_stmts, char const * s)
+{
+	fprintf(stderr, "%s\n", s);
+}

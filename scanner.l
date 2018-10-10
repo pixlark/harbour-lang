@@ -37,11 +37,6 @@
 
 %%
 
-void yyerror(char const * s)
-{
-	fprintf(stderr, "%s\n", s);
-}
-
 void init()
 {
 	yyin = stdin;
