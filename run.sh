@@ -1,4 +1,4 @@
 echo "\`\`\`"
-cat source.fb
+cat source.hb
 echo "\`\`\`"
-cat source.fb | ./scanner
+cat source.hb | ./scanner

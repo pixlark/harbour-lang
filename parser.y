@@ -233,7 +233,7 @@ expression ';' {
 	$$ = $1;
 }
 | print_stmt ';' {
-
+	$$ = $1;
 }
 ;
 
