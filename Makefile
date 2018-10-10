@@ -1,4 +1,4 @@
-make:
+c:
 	bison -d parser.y
 	flex scanner.l
 	gcc -c \
@@ -11,4 +11,10 @@ make:
 	g++ *.o \
 		$(shell llvm-config --cxxflags --ldflags --libs --system-libs) \
 		-o harbour
-	rm *.o *.dwo
+	rm -f *.o *.dwo
+
+harbour:
+	cat source.hb | ./harbour
+	llc -filetype=obj source.bc
+	clang source.o -o source
+	rm -f source.o
