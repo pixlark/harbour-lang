@@ -31,14 +31,13 @@ LLVMValueRef compile_expression(Compile_Context ctx, Expr * expr)
 	case EXPR_ATOM:
 		return LLVMConstInt(LLVMInt32Type(), expr->atom.val, 0);
 		break;
-	case EXPR_VAR:
+	case EXPR_VAR: {
 		// %lx = load i32, i32* %x
 		//LLVMValueRef lx = LLVMBuildLoad(ctx.builder, x, "lx");
 		LLVMValueRef var;
-		map_index(ctx.map, expr->var.name, &var);
-		
-		return LLVMBuildLoad(ctx.builder, 
-		break;
+		map_index(ctx.symbol_table, expr->var.name, &var);
+		return LLVMBuildLoad(ctx.builder, var, "");
+	} break;
 	case EXPR_BINARY: {
 		LLVMValueRef left = compile_expression(ctx, expr->binary.left);
 		LLVMValueRef right = compile_expression(ctx, expr->binary.right);
@@ -113,13 +112,10 @@ int main()
 	
 	ctx.symbol_table = make_map(512);
 	
-	/*
 	for (int s = 0; s < sb_count(stmts); s++) {
 		Stmt * stmt = stmts[s];
-		//compile_statement(builder, stmt);
-		}*/
-
-	LLVMValueRef result = compile_statement(ctx, stmts[0]);
+		compile_statement(ctx, stmt);
+	}
 	
 	LLVMBuildRet(ctx.builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
 	//LLVMBuildRet(builder, result);
