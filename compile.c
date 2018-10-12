@@ -106,6 +106,8 @@ int main()
 	
 	LLVMBasicBlockRef main_block = LLVMAppendBasicBlock(_main, "main_block");
 
+	LLVMValueRef _printf = LLVMGetNamedFunction(module, "printf");
+	
 	Compile_Context ctx;
 	ctx.builder = LLVMCreateBuilder();
 	LLVMPositionBuilderAtEnd(ctx.builder, main_block);
@@ -116,6 +118,11 @@ int main()
 		Stmt * stmt = stmts[s];
 		compile_statement(ctx, stmt);
 	}
+
+	LLVMValueRef printf_args[] = {
+		LLVMConstString("Test", 5, false),
+	};
+	LLVMBuildCall(ctx.builder, _printf, printf_args, 1, "printf_result");
 	
 	LLVMBuildRet(ctx.builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
 	//LLVMBuildRet(builder, result);
