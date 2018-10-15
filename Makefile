@@ -3,7 +3,7 @@
 c:
 	bison -d parser.y
 	flex scanner.l
-	gcc -c \
+	gcc -g -c \
 		-DYYDEBUG=1 \
 			parser.tab.c \
 			lex.yy.c \
@@ -11,7 +11,7 @@ c:
 			compile.c \
 			map.c \
 		$(shell llvm-config --cflags)
-	g++ *.o \
+	g++ -g *.o \
 		$(shell llvm-config --cxxflags --ldflags --libs --system-libs) \
 		-o harbour
 	rm -f *.o *.dwo

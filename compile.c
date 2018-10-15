@@ -106,7 +106,15 @@ int main()
 	
 	LLVMBasicBlockRef main_block = LLVMAppendBasicBlock(_main, "main_block");
 
-	LLVMValueRef _printf = LLVMGetNamedFunction(module, "printf");
+	//LLVMValueRef _printf = LLVMGetNamedFunction(module, "printf");
+
+	LLVMValueRef _puts;
+	{
+		LLVMTypeRef * params = { LLVMPointerType(LLVMInt8Type(), 0) };
+		LLVMTypeRef puts_type = LLVMFunctionType(
+			LLVMInt32Type(), params, 1, false);
+		_puts = LLVMAddFunction(module, "puts", puts_type);
+	}
 	
 	Compile_Context ctx;
 	ctx.builder = LLVMCreateBuilder();
@@ -118,11 +126,15 @@ int main()
 		Stmt * stmt = stmts[s];
 		compile_statement(ctx, stmt);
 	}
-
-	LLVMValueRef printf_args[] = {
-		LLVMConstString("Test", 5, false),
-	};
-	LLVMBuildCall(ctx.builder, _printf, printf_args, 1, "printf_result");
+	
+	//LLVMValueRef test_str = LLVMConstString("Test", 4, false);
+	/*
+	LLVMValueRef indices[] = { LLVMConstInt(LLVMInt32Type(), 0, 0),
+	LLVMConstInt(LLVMInt32Type(), 0, 0) };*/
+	//LLVMValueRef casted_str = LLVMBuildGEP(
+	//	ctx.builder, test_str, indices, 2, "casted_str");
+	
+	//LLVMBuildCall(ctx.builder, _puts, printf_args, 1, "puts_result");
 	
 	LLVMBuildRet(ctx.builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
 	//LLVMBuildRet(builder, result);
