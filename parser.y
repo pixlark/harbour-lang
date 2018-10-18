@@ -350,7 +350,7 @@ char * str_stmt(Stmt * stmt)
 		free(expr);
 	} break;
 	}
-	char * str = malloc(strlen(buffer + 1));
+	char * str = malloc(strlen(buffer) + 1);
 	strcpy(str, buffer);
 	return str;
 }
