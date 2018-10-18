@@ -1,88 +1,181 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-#include <llvm-c/Core.h>
-#include <llvm-c/Transforms/PassManagerBuilder.h>
-//#include <llvm-c/ExecutionEngine.h>
-//#include <llvm-c/Target.h>
-#include <llvm-c/Analysis.h>
-//#include <llvm-c/BitWriter.h>
+#include <stdint.h>
 
 #include "parser.tab.h"
 #include "stretchy_buffer.h"
 #include "map.h"
 
-// Is type immediately evaluatable? i.e. not a compound expression.
-bool is_imval(Expr * expr)
+static FILE * out_file;
+
+typedef enum {
+	REG_0 = 0, 
+	REG_1,  REG_2,  REG_3,
+	REG_4,  REG_5,  REG_6,
+	REG_7,  REG_8,  REG_9,
+	REG_10, REG_11, REG_12,
+} Reg;
+
+#define EMIT_NOTES 1
+#if EMIT_NOTES
+	#define NOTE(str, ...) \
+		fprintf(out_file, "@" str "\n", ##__VA_ARGS__);
+#else
+	#define NOTE(str, ...)
+#endif
+
+#define INVALIDATE_OUTPUT 0
+void fatal(const char * str)
 {
-	//return type == EXPR_ATOM || type == EXPR_VAR;
-	return expr->type == EXPR_ATOM;
+	// Print error
+	fprintf(stderr, "FATAL ERROR:\n\t%s\n", str);
+	#if INVALIDATE_OUTPUT
+	// Invalidate output file
+	int len = ftell(out_file);
+	len = len + sizeof(uint32_t) - (len % sizeof(uint32_t));
+	char * buf = malloc(len);
+	for (int i = 0; i < len / sizeof(uint32_t); i++) {
+		((uint32_t*) buf)[i] = 0xEFBEADDE; // Little-endian
+	}
+	fseek(out_file, 0, SEEK_SET);
+	fwrite(buf, 1, len, out_file);
+	#endif
+	// Close output file
+	fclose(out_file);
+	// Exit with error code
+	exit(1);	
 }
 
-typedef struct {
-	LLVMBuilderRef builder;
-	Map * symbol_table;
-} Compile_Context;
-
-LLVMValueRef compile_expression(Compile_Context ctx, Expr * expr)
+void emit_header()
 {
-	switch (expr->type) {
-	case EXPR_ATOM:
-		return LLVMConstInt(LLVMInt32Type(), expr->atom.val, 0);
+	NOTE("emit_header");
+	fprintf(out_file, ".arch armv4t\n"
+					  ".global main\n"
+					  ".text\n"
+					  ".arm\n");
+}
+
+char * load_string_from_file(char * path)
+{
+	FILE * file = fopen(path, "r");
+	if (file == NULL) return NULL;
+	int file_len = 0;
+	while (fgetc(file) != EOF) file_len++;
+	char * str = (char*) malloc(file_len + 1);
+	str[file_len] = '\0';
+	fseek(file, 0, SEEK_SET);
+	for (int i = 0; i < file_len; i++) str[i] = fgetc(file);
+	fclose(file);
+	return str;
+}
+
+void emit_procedure(char * path)
+{
+	NOTE("IMPORTED PROCEDURE from '%s'", path);
+	char * proc_code = load_string_from_file(path);
+	fprintf(out_file, "%s\n", proc_code);
+	free(proc_code);
+	NOTE("END IMPORTED PROCEDURE");
+}
+
+void emit_label(char * label)
+{
+	NOTE("emit_label");
+	fprintf(out_file, "%s:\n", label);
+}
+
+void emit_func_save()
+{
+	NOTE("emit_func_save");
+	fprintf(out_file, "push {fp, lr}\n"
+					  "add  fp, sp, #4\n");
+}
+
+void emit_func_load()
+{
+	NOTE("emit_func_load");
+	fprintf(out_file, "pop {fp, lr}\n"
+					  "bx  lr\n");
+}
+
+void emit_push(Reg reg)
+{
+	NOTE("emit_push");
+	fprintf(out_file, "push {r%u}\n", reg);
+}
+
+void emit_push_i32(int32_t x)
+{
+	NOTE("emit_push_i32");
+	fprintf(out_file, "mov r12, #%d\n", x);
+	emit_push(REG_12);
+}
+
+void emit_pop(Reg reg)
+{
+	NOTE("emit_pop");
+	fprintf(out_file, "pop {r%u}\n", reg);
+}
+
+void emit_bin_op(Operator op, Reg self, Reg other)
+{
+	NOTE("emit_op");
+	char * op_str;
+	switch (op) {
+	case OP_ADD:
+		fprintf(out_file, "add r%u, r%u\n", self, other);
 		break;
-	case EXPR_VAR: {
-		// %lx = load i32, i32* %x
-		//LLVMValueRef lx = LLVMBuildLoad(ctx.builder, x, "lx");
-		LLVMValueRef var;
-		map_index(ctx.symbol_table, expr->var.name, &var);
-		return LLVMBuildLoad(ctx.builder, var, "");
-	} break;
-	case EXPR_BINARY: {
-		LLVMValueRef left = compile_expression(ctx, expr->binary.left);
-		LLVMValueRef right = compile_expression(ctx, expr->binary.right);
-		switch (expr->binary.operator) {
-		case OP_ADD:
-			return LLVMBuildAdd(ctx.builder, left, right, "");
-		case OP_SUB:
-			return LLVMBuildSub(ctx.builder, left, right, "");
-		case OP_MUL:
-			return LLVMBuildMul(ctx.builder, left, right, "");
-		case OP_DIV:
-			return LLVMBuildUDiv(ctx.builder, left, right, "");
-		}
-		/*
-		  printf("EXPR_BINARY\n");
-		  LLVMBuildAdd(
-		  ctx.builder,
-		  LLVMConstInt(LLVMInt32Type(), expr->binary.left->atom.val,  0),
-		  LLVMConstInt(LLVMInt32Type(), expr->binary.right->atom.val, 0),
-		  "binary");*/
-	} break;
+	case OP_SUB:
+		fprintf(out_file, "sub r%u, r%u\n", self, other);
+		break;
+	case OP_MUL:
+		fprintf(out_file, "mul r%u, r%u\n", self, other);
+		break;
+	case OP_DIV:
+		fprintf(out_file, "push {r%u, r%u}\n"
+						  "pop  {r0, r1}\n"
+						  "bl __aeabi_idiv\n", self, other);
+		break;
 	default:
-		fprintf(stderr, "Not supported\n");
-		exit(1);
+		fatal("Unsupported operation");
+		break;
+	}
+	
+}
+
+void emit_unary_op(Operator op, Reg reg)
+{
+	NOTE("emit_unary_op");
+	switch (op) {
+	case OP_NEG:
+		
+		break;
+	default:
+		fatal("Unsupported operation");
 		break;
 	}
 }
 
-LLVMValueRef compile_statement(Compile_Context ctx, Stmt * stmt)
+void compile_expression(Expr * expr)
 {
-	switch (stmt->type) {
-	case STMT_EXPR: {
-		return compile_expression(ctx, stmt->expr.expr);
+	switch (expr->type) {
+	case EXPR_ATOM: {
+		emit_push_i32(expr->atom.val);
 	} break;
-	case STMT_LET: {
-		LLVMValueRef val = compile_expression(ctx, stmt->let.expr);
-		LLVMValueRef var = LLVMBuildAlloca(ctx.builder, LLVMInt32Type(), stmt->let.name);
-		LLVMBuildStore(ctx.builder, val, var);
-		map_insert(ctx.symbol_table, stmt->let.name, var);
-		return var;
+	case EXPR_UNARY: {
+		compile_expression(expr->unary.expr);
+		emit_pop(REG_0);
+		emit_unary_op(expr->unary.operator, REG_0);
 	} break;
-	default:
-		fprintf(stderr, "Not supported\n");
-		exit(1);
-		break;
+	case EXPR_BINARY: {
+		compile_expression(expr->binary.left);
+		compile_expression(expr->binary.right);
+		emit_pop(REG_1); // right value
+		emit_pop(REG_0); // left value
+		emit_bin_op(expr->binary.operator, REG_0, REG_1);
+		emit_push(REG_0);
+	} break;
 	}
 }
 
@@ -92,68 +185,22 @@ int main()
 	for (int i = 0; i < sb_count(stmts); i++) {
 		print_stmt(stmts[i]);
 	}
+	out_file = fopen("out.s", "w");
 
-	LLVMPassManagerBuilderRef pass_builder = LLVMPassManagerBuilderCreate();
-	LLVMPassManagerBuilderSetOptLevel(pass_builder, 0);
-	LLVMModuleRef module = LLVMModuleCreateWithName("harbour_module");
-	
-	LLVMValueRef _main;
-	{
-		LLVMTypeRef main_type = LLVMFunctionType(
-			LLVMInt32Type(), NULL, 0, 0);
-		_main = LLVMAddFunction(module, "main", main_type);
+	emit_header();
+	emit_label("main");
+
+	emit_func_save();
+
+	for (int i = 0; i < sb_count(stmts); i++) {
+		if (stmts[i]->type == STMT_EXPR) {
+			compile_expression(stmts[i]->expr.expr);
+			emit_pop(REG_0);
+		}
 	}
-	
-	LLVMBasicBlockRef main_block = LLVMAppendBasicBlock(_main, "main_block");
 
-	//LLVMValueRef _printf = LLVMGetNamedFunction(module, "printf");
+	emit_func_load();
 
-	LLVMValueRef _puts;
-	{
-		LLVMTypeRef * params = { LLVMPointerType(LLVMInt8Type(), 0) };
-		LLVMTypeRef puts_type = LLVMFunctionType(
-			LLVMInt32Type(), params, 1, false);
-		_puts = LLVMAddFunction(module, "puts", puts_type);
-	}
-	
-	Compile_Context ctx;
-	ctx.builder = LLVMCreateBuilder();
-	LLVMPositionBuilderAtEnd(ctx.builder, main_block);
-	
-	ctx.symbol_table = make_map(512);
-	
-	for (int s = 0; s < sb_count(stmts); s++) {
-		Stmt * stmt = stmts[s];
-		compile_statement(ctx, stmt);
-	}
-	
-	//LLVMValueRef test_str = LLVMConstString("Test", 4, false);
-	/*
-	LLVMValueRef indices[] = { LLVMConstInt(LLVMInt32Type(), 0, 0),
-	LLVMConstInt(LLVMInt32Type(), 0, 0) };*/
-	//LLVMValueRef casted_str = LLVMBuildGEP(
-	//	ctx.builder, test_str, indices, 2, "casted_str");
-	
-	//LLVMBuildCall(ctx.builder, _puts, printf_args, 1, "puts_result");
-	
-	LLVMBuildRet(ctx.builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
-	//LLVMBuildRet(builder, result);
-	
-	/*
-	// %x = alloca i32
-	LLVMValueRef x = LLVMBuildAlloca(builder, LLVMInt32Type(), "x");
-	// store i32 15, i32* %x
-	LLVMValueRef store = LLVMBuildStore(
-		builder, LLVMConstInt(LLVMInt32Type(), 15, 0), x);
-	// %lx = load i32, i32* %x
-	LLVMValueRef lx = LLVMBuildLoad(builder, x, "lx");
-	// ret i32 %lx
-	LLVMValueRef ret = LLVMBuildRet(builder, lx);*/
-	
-	char * error = NULL;
-	LLVMVerifyModule(module, LLVMAbortProcessAction, &error);
-	LLVMDisposeMessage(error);
-
-	LLVMPrintModuleToFile(module, "source.ll", NULL);
-	LLVMWriteBitcodeToFile(module, "source.bc");
+	fclose(out_file);
+	return 0;	
 }
