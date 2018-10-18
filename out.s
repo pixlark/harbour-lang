@@ -7,7 +7,7 @@
 main:
 @emit_func_save
 push {fp, lr}
-add  fp, sp, #4
+@add  fp, sp, #4
 @emit_push_i32
 mov r12, #1
 @emit_push

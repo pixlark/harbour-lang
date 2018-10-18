@@ -16,81 +16,14 @@
 	Str_Intern * str_interns;
 	const char * str_intern_range(const char * start, const char * end);
 	const char * str_intern(const char * str);
-
-	typedef enum {
-		TYPE_I32,
-	} Type;
-	const char * type_str[];
-	typedef enum {
-		OP_NEG,
-		OP_ADD,
-		OP_SUB,
-		OP_MUL,
-		OP_DIV,
-	} Operator;
-	const char * operator_str[];
-	typedef enum {
-		EXPR_ATOM,
-		EXPR_VAR,
-		EXPR_UNARY,
-		EXPR_BINARY,
-		EXPR_FUNCALL,
-	} Expr_Type;
-	const char * expr_str[];
-	typedef struct Expr {
-		Expr_Type type;
-		union {
-			struct {
-				int val;
-			} atom;
-			struct {
-				const char * name;
-			} var;
-			struct {
-				Operator operator;
-				struct Expr * operand;
-			} unary;
-			struct {
-				Operator operator;
-				struct Expr * left;
-				struct Expr * right;
-			} binary;
-			struct {
-				const char * name;
-				struct Expr ** args;
-			} funcall;
-		};
-	} Expr;
-	typedef enum {
-		STMT_EXPR,
-		STMT_LET,
-		STMT_PRINT,
-	} Stmt_Type;
-	typedef struct Stmt {
-		Stmt_Type type;
-		union {
-			struct {
-				Expr * expr;
-			} expr;
-			struct {
-				const char * name;
-				Type type;
-				Expr * expr;
-			} let;
-			struct {
-				Expr * expr;
-			} print;
-		};
-	} Stmt;
-	void print_expr(Expr * expr);
-	void print_stmt(Stmt * stmt);
+	#include "types.h"
 	#define EXPR(t) \
 		Expr * expr = malloc(sizeof(Expr)); \
 		expr->type = t;
 	#define STMT(t) \
 		Stmt * stmt = malloc(sizeof(Stmt)); \
 		stmt->type = t;
-	Stmt ** parse();
+	Function * parse();
 	void yyerror(Stmt *** program_stmts, char const * s);
  }
 
@@ -275,122 +208,18 @@ const char * str_intern(const char * str)
 	return str_intern_range(str, str + strlen(str));
 }
 
-char * str_expr(Expr * expr)
-{
-	char buffer[512];
-	switch (expr->type) {
-	case EXPR_ATOM: {
-		sprintf(buffer, "Atom: %d", expr->atom.val);
-	} break;
-	case EXPR_VAR: {
-		sprintf(buffer, "Var: %s", expr->var.name);
-	} break;
-	case EXPR_UNARY: {
-		char * operand = str_expr(expr->unary.operand);
-		sprintf(buffer, "Unary %s on [%s]", operator_str[expr->unary.operator], operand);
-		free(operand);
-	} break;
-	case EXPR_BINARY: {
-		char * left = str_expr(expr->binary.left);
-		char * right = str_expr(expr->binary.right);
-		sprintf(buffer, "Binary %s on [%s], [%s]",
-			operator_str[expr->binary.operator],
-			left, right);
-		free(right);
-		free(left);
-	} break;
- 	case EXPR_FUNCALL: {
-		sprintf(buffer, "Funcall %s on [",
-			expr->funcall.name);
-		for (int i = 0; i < sb_count(expr->funcall.args); i++) {
-			char * arg = str_expr(expr->funcall.args[i]);
-			strcat(buffer, arg);
-			if (i != sb_count(expr->funcall.args) - 1) {
-				strcat(buffer, ", ");
-			}
-			free(arg);
-		}
-		strcat(buffer, "]");
-	} break;
-	}
-	char * str = malloc(strlen(buffer) + 1);
-	strcpy(str, buffer);
-	return str;
-}
-
-void print_expr(Expr * expr)
-{
-	char * str = str_expr(expr);
-	printf("%s\n", str);
-	free(str);
-}
-
-char * str_stmt(Stmt * stmt)
-{
-	char buffer[512];
-	switch (stmt->type) {
-	case STMT_EXPR: {
-		char * expr = str_expr(stmt->expr.expr);
-		strcpy(buffer, expr);
-		free(expr);
-	} break;
-	case STMT_LET: {
-		sprintf(buffer, "let %s : %s", stmt->let.name, type_str[stmt->let.type]);
-		if (stmt->let.expr) {
-			char * expr = str_expr(stmt->let.expr);
-			strcat(buffer, " = ");
-			strcat(buffer, expr);
-			free(expr);
-		}
-		strcat(buffer, ";");
-	} break;
-	case STMT_PRINT: {
-		char * expr = str_expr(stmt->print.expr);
-		sprintf(buffer, "print %s;", expr);
-		free(expr);
-	} break;
-	}
-	char * str = malloc(strlen(buffer) + 1);
-	strcpy(str, buffer);
-	return str;
-}
-
-void print_stmt(Stmt * stmt)
-{
-	char * str = str_stmt(stmt);
-	printf("%s\n", str);
-	free(str);
-}
-
-Stmt ** parse()
+Function * parse()
 {
 	yydebug = 0;
 	init();
-	Stmt ** program_stmts = NULL;
-	if (yyparse(&program_stmts)) {
+	Function * func_main = malloc(sizeof(Function));
+	func_main->stmts = NULL;
+	if (yyparse(&func_main->stmts)) {
 		fprintf(stderr, "Encountered error while parsing. Exiting.\n");
 		exit(1);
 	}
-	return program_stmts;
+	return func_main;
 }
-
-const char * type_str[] = {
-	"i32"
-};
-const char * operator_str[] = {
-	"NEG",
-	"ADD",
-	"SUB",
-	"MUL",
-	"DIV",
-};
-const char * expr_str[] = {
-	"ATOM",
-	"VAR",
-	"UNARY",
-	"BINARY",
-	"FUNCALL",
-};
 
 void yyerror(Stmt *** program_stmts, char const * s)
 {

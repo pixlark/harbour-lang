@@ -3,9 +3,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ast.h"
 #include "parser.tab.h"
 #include "stretchy_buffer.h"
 #include "map.h"
+#include "types.h"
 
 static FILE * out_file;
 
@@ -98,7 +100,6 @@ void emit_pop(Reg reg)
 void emit_bin_op(Operator op, Reg self, Reg other)
 {
 	NOTE("emit_op");
-	char * op_str;
 	switch (op) {
 	case OP_ADD:
 		fprintf(out_file, "add r%u, r%u\n", self, other);
@@ -117,8 +118,7 @@ void emit_bin_op(Operator op, Reg self, Reg other)
 	default:
 		fatal("Unsupported operation");
 		break;
-	}
-	
+	}	
 }
 
 void emit_unary_op(Operator op, Reg reg)
@@ -178,19 +178,26 @@ void compile_statement(Stmt * stmt)
 
 int main()
 {
-	Stmt ** stmts = parse();
-	for (int i = 0; i < sb_count(stmts); i++) {
-		print_stmt(stmts[i]);
+	Function * func_main = parse();
+	for (int i = 0; i < sb_count(func_main->stmts); i++) {
+		print_stmt(func_main->stmts[i]);
 	}
-	out_file = fopen("out.s", "w");
 
+	// AST tagging
+	tag_function_vars(func_main);
+
+	return 0;
+	
+	// Output assembly
+	out_file = fopen("out.s", "w");
+	
 	emit_header();
 	emit_label("main");
 
 	emit_func_save();
 
-	for (int i = 0; i < sb_count(stmts); i++) {
-		compile_statement(stmts[i]);
+	for (int i = 0; i < sb_count(func_main->stmts); i++) {
+		compile_statement(func_main->stmts[i]);
 	}
 
 	emit_func_load();
