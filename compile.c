@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #include "ast.h"
 #include "parser.tab.h"
@@ -28,10 +29,14 @@ typedef enum {
 #endif
 
 #define INVALIDATE_OUTPUT 0
-void fatal(const char * str)
+void fatal(const char * str, ...)
 {
+	va_list args;
+	va_start(args, str);
 	// Print error
-	fprintf(stderr, "FATAL ERROR:\n\t%s\n", str);
+	fprintf(stderr, "FATAL ERROR:\n\t", str);
+	vfprintf(stderr, str, args);
+	fprintf(stderr, "\n");
 	#if INVALIDATE_OUTPUT
 	// Invalidate output file
 	int len = ftell(out_file);
@@ -46,6 +51,7 @@ void fatal(const char * str)
 	// Close output file
 	fclose(out_file);
 	// Exit with error code
+	va_end(args);
 	exit(1);	
 }
 
@@ -64,18 +70,22 @@ void emit_label(char * label)
 	fprintf(out_file, "%s:\n", label);
 }
 
-void emit_func_save()
+void emit_func_start(Function * func)
 {
-	NOTE("emit_func_save");
-	fprintf(out_file, "push {fp, lr}\n"
-					  "add  fp, sp, #4\n");
+	NOTE("emit_func_start");
+	fprintf(out_file,
+		"push {fp, lr}\n"
+		"mov fp, sp\n"
+		"sub  sp, #%u\n", func->stack_offset);
 }
 
-void emit_func_load()
+void emit_func_end(Function * func)
 {
-	NOTE("emit_func_load");
-	fprintf(out_file, "pop {fp, lr}\n"
-					  "bx  lr\n");
+	NOTE("emit_func_end");
+	fprintf(out_file,
+		"add sp, #%u\n"
+		"pop {fp, lr}\n"
+		"bx  lr\n", func->stack_offset);
 }
 
 void emit_push(Reg reg)
@@ -134,21 +144,55 @@ void emit_unary_op(Operator op, Reg reg)
 	}
 }
 
-void compile_expression(Expr * expr)
+void emit_stack_load(Reg reg, size_t offset)
+{
+	NOTE("emit_stack_load");
+	fprintf(out_file,
+		"ldr r%u, [fp, #%u]\n",
+		reg, offset);
+}
+
+void emit_stack_save(Reg reg, size_t offset)
+{
+	NOTE("emit_stack_load");
+	fprintf(out_file,
+		"str r%u, [fp, #%u]\n",
+		reg, offset);
+}
+
+size_t var_offset(Function * func, const char * name)
+{
+	uint64_t offset_u64;
+	if (!map_index(
+		func->symbols,
+		(uint64_t) name,
+		&offset_u64)) {
+		fatal("Nonexistent symbol '%s'", name);
+	}
+	size_t offset = (size_t) offset_u64;
+	return offset;
+}
+
+void compile_expression(Function * func, Expr * expr)
 {
 	switch (expr->type) {
 	case EXPR_ATOM: {
 		emit_push_i32(expr->atom.val);
 	} break;
+	case EXPR_VAR: {
+		size_t offset = var_offset(func, expr->var.name);
+		emit_stack_load(REG_0, func->stack_offset - offset);
+		emit_push(REG_0);
+	} break;
 	case EXPR_UNARY: {
-		compile_expression(expr->unary.operand);
+		compile_expression(func, expr->unary.operand);
 		emit_pop(REG_0);
 		emit_unary_op(expr->unary.operator, REG_0);
 		emit_push(REG_0);
 	} break;
 	case EXPR_BINARY: {
-		compile_expression(expr->binary.left);
-		compile_expression(expr->binary.right);
+		compile_expression(func, expr->binary.left);
+		compile_expression(func, expr->binary.right);
 		emit_pop(REG_1); // right value
 		emit_pop(REG_0); // left value
 		emit_bin_op(expr->binary.operator, REG_0, REG_1);
@@ -157,19 +201,25 @@ void compile_expression(Expr * expr)
 	}
 }
 
-void compile_statement(Stmt * stmt)
+void compile_statement(Function * func, Stmt * stmt)
 {
 	switch (stmt->type) {
 	case STMT_EXPR:
-		compile_expression(stmt->expr.expr);
+		compile_expression(func, stmt->expr.expr);
 		emit_pop(REG_0);
 		break;
-	case STMT_PRINT:
-		compile_expression(stmt->print.expr);
+	case STMT_LET: {
+		compile_expression(func, stmt->let.expr);
+		emit_pop(REG_0);
+		size_t offset = var_offset(func, stmt->let.name);
+		emit_stack_save(REG_0, func->stack_offset - offset);
+	} break;
+	case STMT_PRINT: {
+		compile_expression(func, stmt->print.expr);
 		emit_pop(REG_1);
 		fprintf(out_file, "ldr r0, =D__fmt_string\n"
 						  "bl printf\n");
-		break;
+	} break;
 	default:
 		fatal("Statement not supported");
 		break;
@@ -185,8 +235,6 @@ int main()
 
 	// AST tagging
 	tag_function_vars(func_main);
-
-	return 0;
 	
 	// Output assembly
 	out_file = fopen("out.s", "w");
@@ -194,13 +242,13 @@ int main()
 	emit_header();
 	emit_label("main");
 
-	emit_func_save();
+	emit_func_start(func_main);
 
 	for (int i = 0; i < sb_count(func_main->stmts); i++) {
-		compile_statement(func_main->stmts[i]);
+		compile_statement(func_main, func_main->stmts[i]);
 	}
 
-	emit_func_load();
+	emit_func_end(func_main);
 
 	fprintf(out_file, ".data\n"
 					  "D__fmt_string:\n"

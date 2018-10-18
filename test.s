@@ -4,13 +4,19 @@
 	.arm
 main:
 	push {fp, lr}
-	sub sp, #9 @ Creating stack frame
-	
-	ldr r0, =string
-	mov r1, #15
-	bl printf
 
-	add sp, #9 @ Removing stack frame
+	mov fp, sp
+	sub sp, #4
+
+	mov r0, #101
+	str r0, [fp, #-4]
+
+	ldr r0, =string
+	ldr r1, [fp, #-4]
+	bl printf
+	
+	add sp, #4
+
 	pop {fp, lr}
 	bx lr
 
