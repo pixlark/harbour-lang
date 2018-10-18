@@ -56,29 +56,6 @@ void emit_header()
 					  ".arm\n");
 }
 
-char * load_string_from_file(char * path)
-{
-	FILE * file = fopen(path, "r");
-	if (file == NULL) return NULL;
-	int file_len = 0;
-	while (fgetc(file) != EOF) file_len++;
-	char * str = (char*) malloc(file_len + 1);
-	str[file_len] = '\0';
-	fseek(file, 0, SEEK_SET);
-	for (int i = 0; i < file_len; i++) str[i] = fgetc(file);
-	fclose(file);
-	return str;
-}
-
-void emit_procedure(char * path)
-{
-	NOTE("IMPORTED PROCEDURE from '%s'", path);
-	char * proc_code = load_string_from_file(path);
-	fprintf(out_file, "%s\n", proc_code);
-	free(proc_code);
-	NOTE("END IMPORTED PROCEDURE");
-}
-
 void emit_label(char * label)
 {
 	NOTE("emit_label");
@@ -149,7 +126,7 @@ void emit_unary_op(Operator op, Reg reg)
 	NOTE("emit_unary_op");
 	switch (op) {
 	case OP_NEG:
-		
+		fprintf(out_file, "neg r%u, r%u\n", reg, reg);
 		break;
 	default:
 		fatal("Unsupported operation");
@@ -164,9 +141,10 @@ void compile_expression(Expr * expr)
 		emit_push_i32(expr->atom.val);
 	} break;
 	case EXPR_UNARY: {
-		compile_expression(expr->unary.expr);
+		compile_expression(expr->unary.operand);
 		emit_pop(REG_0);
 		emit_unary_op(expr->unary.operator, REG_0);
+		emit_push(REG_0);
 	} break;
 	case EXPR_BINARY: {
 		compile_expression(expr->binary.left);
@@ -176,6 +154,25 @@ void compile_expression(Expr * expr)
 		emit_bin_op(expr->binary.operator, REG_0, REG_1);
 		emit_push(REG_0);
 	} break;
+	}
+}
+
+void compile_statement(Stmt * stmt)
+{
+	switch (stmt->type) {
+	case STMT_EXPR:
+		compile_expression(stmt->expr.expr);
+		emit_pop(REG_0);
+		break;
+	case STMT_PRINT:
+		compile_expression(stmt->print.expr);
+		emit_pop(REG_1);
+		fprintf(out_file, "ldr r0, =D__fmt_string\n"
+						  "bl printf\n");
+		break;
+	default:
+		fatal("Statement not supported");
+		break;
 	}
 }
 
@@ -193,14 +190,16 @@ int main()
 	emit_func_save();
 
 	for (int i = 0; i < sb_count(stmts); i++) {
-		if (stmts[i]->type == STMT_EXPR) {
-			compile_expression(stmts[i]->expr.expr);
-			emit_pop(REG_0);
-		}
+		compile_statement(stmts[i]);
 	}
 
 	emit_func_load();
 
+	fprintf(out_file, ".data\n"
+					  "D__fmt_string:\n"
+					  ".ascii \"%s\\n\"\n", "%d");
+
 	fclose(out_file);
-	return 0;	
+
+	return 0;
 }

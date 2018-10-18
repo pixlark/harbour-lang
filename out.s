@@ -9,49 +9,32 @@ main:
 push {fp, lr}
 add  fp, sp, #4
 @emit_push_i32
-mov r12, #10
+mov r12, #1
 @emit_push
 push {r12}
+@emit_pop
+pop {r1}
+ldr r0, =D__fmt_string
+bl printf
 @emit_push_i32
 mov r12, #2
 @emit_push
 push {r12}
 @emit_pop
 pop {r1}
-@emit_pop
-pop {r0}
-@emit_op
-add r0, r1
-@emit_push
-push {r0}
+ldr r0, =D__fmt_string
+bl printf
 @emit_push_i32
-mov r12, #4
+mov r12, #3
 @emit_push
 push {r12}
 @emit_pop
 pop {r1}
-@emit_pop
-pop {r0}
-@emit_op
-mul r0, r1
-@emit_push
-push {r0}
-@emit_push_i32
-mov r12, #6
-@emit_push
-push {r12}
-@emit_pop
-pop {r1}
-@emit_pop
-pop {r0}
-@emit_op
-push {r0, r1}
-pop  {r0, r1}
-bl __aeabi_idiv
-@emit_push
-push {r0}
-@emit_pop
-pop {r0}
+ldr r0, =D__fmt_string
+bl printf
 @emit_func_load
 pop {fp, lr}
 bx  lr
+.data
+D__fmt_string:
+.ascii "%d\n"

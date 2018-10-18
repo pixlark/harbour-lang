@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ $# -ne 1 ];
+	then echo "Provide one .hb file to compile."
+	exit
+fi
+
+cat $1 | ./harbour
+arm-linux-gnueabi-as out.s -as -mfloat-abi=soft -mcpu=all -march=armv4 -o out.o
+arm-linux-gnueabi-gcc -static out.o -o out

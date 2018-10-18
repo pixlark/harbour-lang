@@ -1,4 +1,8 @@
 harbour
+out
+*.o
+obj
+
 lex.yy.c
 parser.tab.h
 parser.tab.c
