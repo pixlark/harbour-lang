@@ -148,7 +148,7 @@ void emit_stack_load(Reg reg, size_t offset)
 {
 	NOTE("emit_stack_load");
 	fprintf(out_file,
-		"ldr r%u, [fp, #%u]\n",
+		"ldr r%u, [fp, #-%u]\n",
 		reg, offset);
 }
 
@@ -156,7 +156,7 @@ void emit_stack_save(Reg reg, size_t offset)
 {
 	NOTE("emit_stack_load");
 	fprintf(out_file,
-		"str r%u, [fp, #%u]\n",
+		"str r%u, [fp, #-%u]\n",
 		reg, offset);
 }
 
