@@ -144,23 +144,23 @@ void emit_unary_op(Operator op, Reg reg)
 	}
 }
 
-void emit_stack_load(Reg reg, size_t offset)
+void emit_stack_load(Reg reg, int offset)
 {
 	NOTE("emit_stack_load");
 	fprintf(out_file,
-		"ldr r%u, [fp, #-%u]\n",
+		"ldr r%u, [fp, #%d]\n",
 		reg, offset);
 }
 
-void emit_stack_save(Reg reg, size_t offset)
+void emit_stack_save(Reg reg, int offset)
 {
-	NOTE("emit_stack_load");
+	NOTE("emit_stack_save");
 	fprintf(out_file,
-		"str r%u, [fp, #-%u]\n",
+		"str r%u, [fp, #%d]\n",
 		reg, offset);
 }
 
-size_t var_offset(Function * func, const char * name)
+int var_offset(Function * func, const char * name)
 {
 	uint64_t offset_u64;
 	if (!map_index(
@@ -169,8 +169,7 @@ size_t var_offset(Function * func, const char * name)
 		&offset_u64)) {
 		fatal("Nonexistent symbol '%s'", name);
 	}
-	size_t offset = (size_t) offset_u64;
-	return offset;
+	return (int) offset_u64;
 }
 
 void compile_expression(Function * func, Expr * expr)
@@ -181,7 +180,7 @@ void compile_expression(Function * func, Expr * expr)
 	} break;
 	case EXPR_VAR: {
 		size_t offset = var_offset(func, expr->var.name);
-		emit_stack_load(REG_0, func->stack_offset - offset);
+		emit_stack_load(REG_0, offset);
 		emit_push(REG_0);
 	} break;
 	case EXPR_UNARY: {
@@ -212,7 +211,7 @@ void compile_statement(Function * func, Stmt * stmt)
 		compile_expression(func, stmt->let.expr);
 		emit_pop(REG_0);
 		size_t offset = var_offset(func, stmt->let.name);
-		emit_stack_save(REG_0, func->stack_offset - offset);
+		emit_stack_save(REG_0, offset);
 	} break;
 	case STMT_PRINT: {
 		compile_expression(func, stmt->print.expr);

@@ -75,7 +75,7 @@ typedef struct Stmt {
 typedef struct Function {
 	Stmt ** stmts;
 	Map * symbols;
-	size_t stack_offset;
+	int stack_offset;
 } Function;
 
 void print_expr(Expr * expr);
