@@ -20,7 +20,7 @@ typedef enum {
 	REG_10, REG_11, REG_12,
 } Reg;
 
-#define EMIT_NOTES 1
+#define EMIT_NOTES 0
 #if EMIT_NOTES
 	#define NOTE(str, ...) \
 		fprintf(out_file, "@" str "\n", ##__VA_ARGS__);
@@ -252,7 +252,7 @@ int main()
 
 	fprintf(out_file, ".data\n"
 					  "D__fmt_string:\n"
-					  ".ascii \"%s\\n\"\n", "%d");
+					  ".ascii \"%s\\n\\0\"\n", "%d");
 
 	fclose(out_file);
 
