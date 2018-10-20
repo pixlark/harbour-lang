@@ -5,14 +5,14 @@
 main:
 push {fp, lr}
 mov fp, sp
-sub  sp, #8
+sub  sp, #4
 mov r12, #15
 push {r12}
 pop {r0}
-str r0, [fp, #-8]
-ldr r0, [fp, #-8]
+str r0, [fp, #-4]
+ldr r0, [fp, #-4]
 push {r0}
-mov r12, #15
+mov r12, #12
 push {r12}
 pop {r1}
 pop {r0}
@@ -25,7 +25,7 @@ push {r0}
 pop {r1}
 ldr r0, =D__fmt_string
 bl printf
-add sp, #8
+add sp, #4
 pop {fp, lr}
 bx  lr
 .data

@@ -87,6 +87,13 @@ char * str_stmt(Stmt * stmt)
 		}
 		strcat(buffer, ";");
 	} break;
+	case STMT_ASSIGN: {
+		sprintf(buffer, "%s = ", stmt->assign.name);
+		char * expr = str_expr(stmt->assign.expr);
+		strcat(buffer, expr);
+		strcat(buffer, ";");
+		free(expr);
+	} break;
 	case STMT_PRINT: {
 		char * expr = str_expr(stmt->print.expr);
 		sprintf(buffer, "print %s;", expr);

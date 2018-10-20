@@ -209,6 +209,12 @@ void compile_statement(Function * func, Stmt * stmt)
 		size_t offset = var_offset(func, stmt->let.name);
 		emit_stack_save(REG_0, offset);
 	} break;
+	case STMT_ASSIGN: {
+		compile_expression(func, stmt->assign.expr);
+		emit_pop(REG_0);
+		size_t offset = var_offset(func, stmt->assign.name);
+		emit_stack_save(REG_0, offset);
+	} break;
 	case STMT_PRINT: {
 		compile_expression(func, stmt->print.expr);
 		emit_pop(REG_1);

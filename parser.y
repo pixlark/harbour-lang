@@ -49,6 +49,7 @@
 %type <exprlist> comma_expression
 %type <stmt>     statement
 %type <stmt>     let_stmt
+%type <stmt>     assign_stmt
 %type <stmt>     print_stmt
 
 %left '+' '-'
@@ -151,6 +152,15 @@ LET_KW IDENT ':' TYPE {
 }
 ;
 
+assign_stmt:
+IDENT '=' expression {
+	STMT(STMT_ASSIGN);
+	stmt->assign.name = $1;
+	stmt->assign.expr = $3;
+	$$ = stmt;
+}
+;
+
 print_stmt:
 PRINT_KW expression {
 	STMT(STMT_PRINT);
@@ -166,6 +176,9 @@ expression ';' {
 	$$ = stmt;
 }
 | let_stmt ';' {
+	$$ = $1;
+}
+| assign_stmt ';' {
 	$$ = $1;
 }
 | print_stmt ';' {
