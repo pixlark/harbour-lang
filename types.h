@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "stretchy_buffer.h"
-#include "map.h"
+#include "table.h"
 
 typedef enum {
 	TYPE_I32,
 } Type;
-const char * type_str[];
+extern const char * type_str[];
 typedef enum {
 	OP_NEG,
 	OP_ADD,
@@ -17,7 +17,7 @@ typedef enum {
 	OP_MUL,
 	OP_DIV,
 } Operator;
-const char * operator_str[];
+extern const char * operator_str[];
 typedef enum {
 	EXPR_ATOM,
 	EXPR_VAR,
@@ -25,7 +25,7 @@ typedef enum {
 	EXPR_BINARY,
 	EXPR_FUNCALL,
 } Expr_Type;
-const char * expr_str[];
+extern const char * expr_str[];
 typedef struct Expr {
 	Expr_Type type;
 	union {
@@ -74,7 +74,7 @@ typedef struct Stmt {
 
 typedef struct Function {
 	Stmt ** stmts;
-	Map * symbols;
+	Symbol_Table * symbols;
 	int stack_offset;
 } Function;
 

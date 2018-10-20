@@ -7,7 +7,7 @@
 #include "ast.h"
 #include "parser.tab.h"
 #include "stretchy_buffer.h"
-#include "map.h"
+#include "table.h"
 #include "types.h"
 
 static FILE * out_file;
@@ -162,14 +162,10 @@ void emit_stack_save(Reg reg, int offset)
 
 int var_offset(Function * func, const char * name)
 {
-	uint64_t offset_u64;
-	if (!map_index(
-		func->symbols,
-		(uint64_t) name,
-		&offset_u64)) {
+	if (!table_symbol_exists(func->symbols, name)) {
 		fatal("Nonexistent symbol '%s'", name);
 	}
-	return (int) offset_u64;
+	return table_get_symbol(func->symbols, name);
 }
 
 void compile_expression(Function * func, Expr * expr)

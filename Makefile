@@ -4,19 +4,22 @@ c:
 	bison -d parser.y
 	flex scanner.l
 	cd obj && \
-	gcc -g -c \
+	gcc -g \
 		-DYYDEBUG=1 \
 			../parser.tab.c \
 			../lex.yy.c \
 			../stretchy_buffer.c \
 			../compile.c \
-			../map.c \
+			../table.c \
 			../ast.c \
 			../types.c \
-		$(shell llvm-config --cflags)
-	g++ -g obj/*.o \
-		$(shell llvm-config --cxxflags --ldflags --libs --system-libs) \
-		-o harbour
+		-o ../harbour
+
+
+#		$(shell llvm-config --cflags)
+#	g++ -g obj/*.o \
+#		$(shell llvm-config --cxxflags --ldflags --libs --system-libs) \
+#		-o harbour
 
 harbour:
 	cat source.hb | ./harbour

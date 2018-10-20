@@ -1,14 +1,14 @@
 #include "ast.h"
 
-void print_symbols(Map * map)
+void print_symbols(Symbol_Table * table)
 {
 	printf("-- SYMBOLS --\n");
-	for (int i = 0; i < map->size; i++) {
-		if (map->taken[i]) {
+	for (int i = 0; i < table->size; i++) {
+		if (table->taken[i]) {
 			printf("'%s' (@%p) -> %d\n",
-				(char*) map->keys[i],
-				(char*) map->keys[i],
-				(int) map->values[i]);
+				table->keys[i],
+				table->keys[i],
+				table->values[i]);
 		}
 	}
 	printf("-------------\n");
@@ -16,26 +16,17 @@ void print_symbols(Map * map)
 
 void tag_stmt(Function * func, Stmt * stmt)
 {
-	switch (stmt->type) {
-	case STMT_LET:
-		if (!map_index(
-			func->symbols,
-			(uint64_t) stmt->let.name, NULL)) {
-			map_insert(
-				func->symbols,
-				(uint64_t) stmt->let.name,
-				(uint64_t) func->stack_offset);
+	if (stmt->type == STMT_LET) {
+		if (!table_symbol_exists(func->symbols, stmt->let.name)) {
+			table_add_symbol(func->symbols, stmt->let.name, func->stack_offset);
 			func->stack_offset += sizeof(int32_t);
 		}
-		break;
-	default:
-		break;
 	}
 }
 
 void tag_function_vars(Function * func)
 {
-	func->symbols = make_map(512);
+	func->symbols = table_create(512);
 	func->stack_offset = 0;
 
 	// Tag initial offsets
@@ -46,8 +37,7 @@ void tag_function_vars(Function * func)
 	// Retag as offset from FP rather than SP
 	for (int i = 0; i < func->symbols->size; i++) {
 		if (func->symbols->taken[i]) {
-			//((int) func->symbols->values[i]) -= func->stack_offset;
-			func->symbols->values[i] = (uint64_t) (((int) func->symbols->values[i]) - func->stack_offset);
+			func->symbols->values[i] -= func->stack_offset;
 		}
 	}
 	
