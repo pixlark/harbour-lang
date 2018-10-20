@@ -76,7 +76,8 @@ expression {
 expression:
 INT_LIT {
 	EXPR(EXPR_ATOM);
-	expr->atom.val = $1;
+	expr->atom.val_type = TYPE_I32;
+	expr->atom._i32 = $1;
 	$$ = expr;
 }
 | IDENT {

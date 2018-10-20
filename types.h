@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "stretchy_buffer.h"
-#include "table.h"
 
 typedef enum {
 	TYPE_I32,
@@ -30,7 +30,10 @@ typedef struct Expr {
 	Expr_Type type;
 	union {
 		struct {
-			int32_t val;
+			Type val_type;
+			union {
+				int32_t _i32;
+			};
 		} atom;
 		struct {
 			const char * name;
@@ -77,6 +80,18 @@ typedef struct Stmt {
 	};
 } Stmt;
 
+typedef struct {
+	int offset;
+	Type type;
+} Symbol;
+
+typedef struct {
+	char ** keys;
+	Symbol * values;
+	bool * taken;
+	size_t size;
+} Symbol_Table;
+
 typedef struct Function {
 	Stmt ** stmts;
 	Symbol_Table * symbols;
@@ -85,3 +100,5 @@ typedef struct Function {
 
 void print_expr(Expr * expr);
 void print_stmt(Stmt * stmt);
+
+Symbol create_symbol(Type type, int offset);

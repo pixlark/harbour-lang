@@ -10,9 +10,9 @@ c:
 			../lex.yy.c \
 			../stretchy_buffer.c \
 			../compile.c \
+			../types.c \
 			../table.c \
 			../ast.c \
-			../types.c \
 		-o ../harbour
 
 

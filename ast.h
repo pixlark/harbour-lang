@@ -2,4 +2,5 @@
 
 #include "types.h"
 
-void tag_function_vars(Function * func);
+void create_symbols(Function * func);
+bool typecheck_expr(Expr * expr, Type expected);

@@ -23,7 +23,11 @@ char * str_expr(Expr * expr)
 	char buffer[512];
 	switch (expr->type) {
 	case EXPR_ATOM: {
-		sprintf(buffer, "Atom: %d", expr->atom.val);
+		switch (expr->atom.val_type) {
+		case TYPE_I32:
+			sprintf(buffer, "i32: %d", expr->atom._i32);
+			break;
+		}
 	} break;
 	case EXPR_VAR: {
 		sprintf(buffer, "Var: %s", expr->var.name);
@@ -112,3 +116,7 @@ void print_stmt(Stmt * stmt)
 	free(str);
 }
 
+Symbol create_symbol(Type type, int offset)
+{
+	return (Symbol) { .type = type, .offset = offset };
+}

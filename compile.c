@@ -165,14 +165,15 @@ int var_offset(Function * func, const char * name)
 	if (!table_symbol_exists(func->symbols, name)) {
 		fatal("Nonexistent symbol '%s'", name);
 	}
-	return table_get_symbol(func->symbols, name);
+	Symbol sym = table_get_symbol(func->symbols, name);
+	return sym.offset;
 }
 
 void compile_expression(Function * func, Expr * expr)
 {
 	switch (expr->type) {
 	case EXPR_ATOM: {
-		emit_push_i32(expr->atom.val);
+		//emit_push_i32(expr->atom.val);
 	} break;
 	case EXPR_VAR: {
 		size_t offset = var_offset(func, expr->var.name);
@@ -234,8 +235,12 @@ int main()
 		print_stmt(func_main->stmts[i]);
 	}
 
-	// AST tagging
-	tag_function_vars(func_main);
+	// Fill our symbol table
+	create_symbols(func_main);
+
+	printf("correct: %d\n", typecheck_expr(func_main->stmts[0]->let.expr, TYPE_I32));
+
+	return 0;
 	
 	// Output assembly
 	out_file = fopen("out.s", "w");
