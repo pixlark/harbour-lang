@@ -48,14 +48,42 @@ void create_symbols(Function * func)
 	print_symbols(func->symbols);
 }
 
-bool typecheck_expr(Expr * expr, Type expected)
+bool typecheck_expr(Function * func, Expr * expr, Type expected)
 {
 	switch (expr->type) {
-	case EXPR_ATOM:
+	case EXPR_ATOM: {
 		return expr->atom.val_type == expected;
-		break;
-	case EXPR_VAR:
-		
+	} break;
+	case EXPR_VAR: {
+		Symbol sym = get_symbol(func, expr->var.name);
+		return sym.type == expected;
+	} break;
+	case EXPR_BINARY: {
+		return
+			typecheck_expr(func, expr->binary.left, expected) &&
+			typecheck_expr(func, expr->binary.right, expected);
+	} break;
+	case EXPR_UNARY: {
+		return typecheck_expr(func, expr->unary.operand, expected);
+	} break;
+	default: {
+		fatal("Case not handled!");
+	} break;
+	}
+}
+
+bool typecheck_stmt(Function * func, Stmt * stmt)
+{
+	switch (stmt->type) {
+	case STMT_LET: {
+		return typecheck_expr(func, stmt->let.expr, stmt->let.type);
+	} break;
+	case STMT_ASSIGN: {
+		Symbol sym = get_symbol(func, stmt->assign.name);
+		return typecheck_expr(func, stmt->assign.expr, sym.type);
+	} break;
+	default:
+		return true;
 		break;
 	}
 }

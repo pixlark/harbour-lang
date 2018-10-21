@@ -38,7 +38,6 @@ typedef struct Expr {
 		} atom;
 		struct {
 			const char * name;
-			Symbol * symbol;
 		} var;
 		struct {
 			Operator operator;
@@ -106,3 +105,5 @@ void print_expr(Expr * expr);
 void print_stmt(Stmt * stmt);
 
 Symbol create_symbol(Type type, int offset);
+
+Symbol get_symbol(Function * function, char * name);

@@ -1,4 +1,8 @@
+#include <string.h>
+
+#include "error.h"
 #include "types.h"
+#include "table.h"
 
 const char * type_str[] = {
 	"i32"
@@ -119,4 +123,14 @@ void print_stmt(Stmt * stmt)
 Symbol create_symbol(Type type, int offset)
 {
 	return (Symbol) { .type = type, .offset = offset };
+}
+
+// TODO(pixlark): When we have seperate functions, this will look
+// first in the function namespace, then in the global namespace
+Symbol get_symbol(Function * function, char * name)
+{
+	if (!table_symbol_exists(function->symbols, name)) {
+		fatal("Symbol '%s' does not exist!", name);
+	}
+	return table_get_symbol(function->symbols, name);
 }

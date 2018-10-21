@@ -83,7 +83,7 @@ INT_LIT {
 | IDENT {
 	EXPR(EXPR_VAR);
 	expr->var.name = $1;
-	expr->var.symbol = NULL;
+	//expr->var.symbol = NULL;
 	$$ = expr;
 }
 | IDENT '(' ')' {

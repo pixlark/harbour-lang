@@ -6,13 +6,14 @@ c:
 	cd obj && \
 	gcc -g \
 		-DYYDEBUG=1 \
-			../parser.tab.c \
-			../lex.yy.c \
-			../stretchy_buffer.c \
-			../compile.c \
-			../types.c \
-			../table.c \
 			../ast.c \
+			../compile.c \
+			../error.c \
+			../lex.yy.c \
+			../parser.tab.c \
+			../stretchy_buffer.c \
+			../table.c \
+			../types.c \
 		-o ../harbour
 
 

@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdarg.h>
 
 #include "ast.h"
+#include "error.h"
 #include "parser.tab.h"
 #include "stretchy_buffer.h"
 #include "table.h"
@@ -28,6 +28,7 @@ typedef enum {
 	#define NOTE(str, ...)
 #endif
 
+#if 0
 #define INVALIDATE_OUTPUT 0
 void fatal(const char * str, ...)
 {
@@ -54,6 +55,7 @@ void fatal(const char * str, ...)
 	va_end(args);
 	exit(1);	
 }
+#endif
 
 void emit_header()
 {
@@ -231,14 +233,14 @@ void compile_statement(Function * func, Stmt * stmt)
 int main()
 {
 	Function * func_main = parse();
-	for (int i = 0; i < sb_count(func_main->stmts); i++) {
-		print_stmt(func_main->stmts[i]);
-	}
 
 	// Fill our symbol table
 	create_symbols(func_main);
 
-	printf("correct: %d\n", typecheck_expr(func_main->stmts[0]->let.expr, TYPE_I32));
+	for (int i = 0; i < sb_count(func_main->stmts); i++) {
+		print_stmt(func_main->stmts[i]);
+		printf("correct: %d\n", typecheck_stmt(func_main, func_main->stmts[i]));
+	}
 
 	return 0;
 	
