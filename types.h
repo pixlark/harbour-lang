@@ -26,6 +26,7 @@ typedef enum {
 	EXPR_FUNCALL,
 } Expr_Type;
 extern const char * expr_str[];
+
 typedef struct Expr {
 	Expr_Type type;
 	union {
@@ -37,6 +38,7 @@ typedef struct Expr {
 		} atom;
 		struct {
 			const char * name;
+			Symbol * symbol;
 		} var;
 		struct {
 			Operator operator;
@@ -53,12 +55,14 @@ typedef struct Expr {
 		} funcall;
 	};
 } Expr;
+
 typedef enum {
 	STMT_EXPR,
 	STMT_LET,
 	STMT_ASSIGN,
 	STMT_PRINT,
 } Stmt_Type;
+
 typedef struct Stmt {
 	Stmt_Type type;
 	union {
