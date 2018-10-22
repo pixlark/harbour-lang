@@ -31,7 +31,8 @@
 %parse-param {Stmt *** program_stmts}
 						
 %union {
-	int val;
+	int int_val;
+	uint8_t bool_val;
 	const char * ident;
 	Expr * expr;
 	Expr ** exprlist;
@@ -39,11 +40,12 @@
 	Type type;
 };
 
-%token         LET_KW
-%token         PRINT_KW
-%token <val>   INT_LIT
-%token <ident> IDENT
-%token <type>  TYPE
+%token            LET_KW
+%token            PRINT_KW
+%token <int_val>  INT_LIT
+%token <bool_val> BOOL_LIT
+%token <ident>    IDENT
+%token <type>     TYPE
 
 %type <expr>     expression
 %type <exprlist> comma_expression
@@ -78,6 +80,13 @@ INT_LIT {
 	EXPR(EXPR_ATOM);
 	expr->atom.val_type = TYPE_I32;
 	expr->atom._i32 = $1;
+	$$ = expr;
+}
+|
+BOOL_LIT {
+	EXPR(EXPR_ATOM);
+	expr->atom.val_type = TYPE_BOOL;
+	expr->atom._bool = $1;
 	$$ = expr;
 }
 | IDENT {

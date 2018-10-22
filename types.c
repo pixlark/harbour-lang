@@ -5,7 +5,8 @@
 #include "table.h"
 
 const char * type_str[] = {
-	"i32"
+	"i32",
+	"bool",
 };
 const char * operator_str[] = {
 	"NEG",
@@ -30,6 +31,10 @@ char * str_expr(Expr * expr)
 		switch (expr->atom.val_type) {
 		case TYPE_I32:
 			sprintf(buffer, "i32: %d", expr->atom._i32);
+			break;
+		case TYPE_BOOL:
+			sprintf(buffer,
+				"bool: %s", expr->atom._bool ? "true" : "false");
 			break;
 		}
 	} break;

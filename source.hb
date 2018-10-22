@@ -1,3 +1,2 @@
-let a : i32 = 15;
-a = a + 12;
+let a : bool = 16;
 print a;

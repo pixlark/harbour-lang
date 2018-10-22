@@ -237,9 +237,12 @@ int main()
 	// Fill our symbol table
 	create_symbols(func_main);
 
+	// Typecheck main
 	for (int i = 0; i < sb_count(func_main->stmts); i++) {
-		print_stmt(func_main->stmts[i]);
-		printf("correct: %d\n", typecheck_stmt(func_main, func_main->stmts[i]));
+		//print_stmt(func_main->stmts[i]);
+		if (!typecheck_stmt(func_main, func_main->stmts[i])) {
+			fatal("Mismatched types");
+		}
 	}
 
 	return 0;

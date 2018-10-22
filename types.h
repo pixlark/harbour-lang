@@ -8,6 +8,7 @@
 
 typedef enum {
 	TYPE_I32,
+	TYPE_BOOL,
 } Type;
 extern const char * type_str[];
 typedef enum {
@@ -34,6 +35,7 @@ typedef struct Expr {
 			Type val_type;
 			union {
 				int32_t _i32;
+				uint8_t _bool;
 			};
 		} atom;
 		struct {
