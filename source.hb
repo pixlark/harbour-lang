@@ -1,2 +1,2 @@
-let a : bool = 16;
+let a : bool = true;
 print a;

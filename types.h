@@ -7,8 +7,13 @@
 #include "stretchy_buffer.h"
 
 typedef enum {
-	TYPE_I32,
-	TYPE_BOOL,
+	TYPE_BOOL = 1 << 0,
+	TYPE_I32  = 1 << 1,
+	TYPE_I16  = 1 << 2,
+	TYPE_I8   = 1 << 3,
+	TYPE_U32  = 1 << 4,
+	TYPE_U16  = 1 << 5,
+	TYPE_U8   = 1 << 6,
 } Type;
 extern const char * type_str[];
 typedef enum {
@@ -18,6 +23,7 @@ typedef enum {
 	OP_MUL,
 	OP_DIV,
 } Operator;
+extern const uint32_t operator_types[];
 extern const char * operator_str[];
 typedef enum {
 	EXPR_ATOM,
@@ -27,7 +33,6 @@ typedef enum {
 	EXPR_FUNCALL,
 } Expr_Type;
 extern const char * expr_str[];
-
 typedef struct Expr {
 	Expr_Type type;
 	union {

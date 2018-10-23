@@ -48,23 +48,41 @@ void create_symbols(Function * func)
 	print_symbols(func->symbols);
 }
 
-bool typecheck_expr(Function * func, Expr * expr, Type expected)
+Type typecheck_expr(Function * func, Expr * expr)
 {
 	switch (expr->type) {
 	case EXPR_ATOM: {
-		return expr->atom.val_type == expected;
+		return expr->atom.val_type;
 	} break;
 	case EXPR_VAR: {
 		Symbol sym = get_symbol(func, expr->var.name);
-		return sym.type == expected;
+		return sym.type;
 	} break;
 	case EXPR_BINARY: {
-		return
-			typecheck_expr(func, expr->binary.left, expected) &&
-			typecheck_expr(func, expr->binary.right, expected);
+		Type left  = typecheck_expr(func, expr->binary.left);
+		Type right = typecheck_expr(func, expr->binary.right);
+		// Check that operands are the same type
+		if (left != right) {
+			fatal("Operands of %s not of same type",
+				operator_str[expr->binary.operator]);
+		}
+		// Check that operands are valid for the operator
+		if (!(operator_types[expr->binary.operator] & left)) {
+			fatal("Operands of type %s not valid for operator %s",
+				type_str[left],
+				operator_str[expr->binary.operator]);
+		}
+		return left;
 	} break;
 	case EXPR_UNARY: {
-		return typecheck_expr(func, expr->unary.operand, expected);
+		Type type = typecheck_expr(func, expr->unary.operand);
+		// Check that operand is valid for operator
+		if (!(operator_types[expr->unary.operator] & type)) {
+			fatal("Operand of type %s not valid for operator %s",
+				type_str[type],
+				operator_str[expr->unary.operator]);
+		}
+		return type;
 	} break;
 	default: {
 		fatal("Case not handled!");
@@ -72,18 +90,27 @@ bool typecheck_expr(Function * func, Expr * expr, Type expected)
 	}
 }
 
-bool typecheck_stmt(Function * func, Stmt * stmt)
+Type typecheck_stmt(Function * func, Stmt * stmt)
 {
 	switch (stmt->type) {
 	case STMT_LET: {
-		return typecheck_expr(func, stmt->let.expr, stmt->let.type);
+		Type expr_type = typecheck_expr(func, stmt->let.expr);
+		if (expr_type != stmt->let.type) {
+			fatal("Let expected type %s, got %s",
+				type_str[stmt->let.type],
+				type_str[expr_type]);
+		}
 	} break;
 	case STMT_ASSIGN: {
+		Type expr_type = typecheck_expr(func, stmt->assign.expr);
 		Symbol sym = get_symbol(func, stmt->assign.name);
-		return typecheck_expr(func, stmt->assign.expr, sym.type);
+		if (expr_type != sym.type) {
+			fatal("Assignment expected type %s, got %s",
+				type_str[sym.type],
+				type_str[expr_type]);
+		}
 	} break;
 	default:
-		return true;
 		break;
 	}
 }

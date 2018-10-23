@@ -4,9 +4,17 @@
 #include "types.h"
 #include "table.h"
 
+const uint32_t operator_types[] = {
+	[OP_NEG] = TYPE_I32 | TYPE_I16 | TYPE_I8,
+	[OP_ADD] = TYPE_I32 | TYPE_I16 | TYPE_I8 | TYPE_U32 | TYPE_U16 | TYPE_U8,
+	[OP_SUB] = TYPE_I32 | TYPE_I16 | TYPE_I8 | TYPE_U32 | TYPE_U16 | TYPE_U8,
+	[OP_MUL] = TYPE_I32 | TYPE_I16 | TYPE_I8 | TYPE_U32 | TYPE_U16 | TYPE_U8,
+	[OP_DIV] = TYPE_I32 | TYPE_I16 | TYPE_I8 | TYPE_U32 | TYPE_U16 | TYPE_U8,
+};
+
 const char * type_str[] = {
-	"i32",
-	"bool",
+	[TYPE_BOOL] = "bool",
+	[TYPE_I32]  = "i32",
 };
 const char * operator_str[] = {
 	"NEG",

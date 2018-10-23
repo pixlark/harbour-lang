@@ -4,7 +4,7 @@ c:
 	bison -d parser.y
 	flex scanner.l
 	cd obj && \
-	gcc -g \
+	gcc -std=c99 -g \
 		-DYYDEBUG=1 \
 			../ast.c \
 			../compile.c \

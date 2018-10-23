@@ -4,5 +4,5 @@
 #include "table.h"
 
 void create_symbols(Function * func);
-bool typecheck_expr(Function * func, Expr * expr, Type expected);
-bool typecheck_stmt(Function * func, Stmt * stmt);
+Type typecheck_expr(Function * func, Expr * expr);
+Type typecheck_stmt(Function * func, Stmt * stmt);

@@ -239,10 +239,8 @@ int main()
 
 	// Typecheck main
 	for (int i = 0; i < sb_count(func_main->stmts); i++) {
-		//print_stmt(func_main->stmts[i]);
-		if (!typecheck_stmt(func_main, func_main->stmts[i])) {
-			fatal("Mismatched types");
-		}
+		print_stmt(func_main->stmts[i]);
+		typecheck_stmt(func_main, func_main->stmts[i]);
 	}
 
 	return 0;
