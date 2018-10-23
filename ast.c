@@ -90,7 +90,7 @@ Type typecheck_expr(Function * func, Expr * expr)
 	}
 }
 
-Type typecheck_stmt(Function * func, Stmt * stmt)
+void typecheck_stmt(Function * func, Stmt * stmt)
 {
 	switch (stmt->type) {
 	case STMT_LET: {
@@ -109,6 +109,9 @@ Type typecheck_stmt(Function * func, Stmt * stmt)
 				type_str[sym.type],
 				type_str[expr_type]);
 		}
+	} break;
+	case STMT_PRINT: {
+		typecheck_expr(func, stmt->print.expr);
 	} break;
 	default:
 		break;
