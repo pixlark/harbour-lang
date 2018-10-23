@@ -242,8 +242,6 @@ int main()
 		print_stmt(func_main->stmts[i]);
 		typecheck_stmt(func_main, func_main->stmts[i]);
 	}
-
-	return 0;
 	
 	// Output assembly
 	out_file = fopen("out.s", "w");
